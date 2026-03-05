@@ -3,8 +3,7 @@
   "build": {
     "dockerfile": "Dockerfile",
     "args": {
-      "TZ": "${localEnv:TZ:Asia/Tokyo}",
-      "ZSH_IN_DOCKER_VERSION": "1.2.0"
+      "TZ": "${localEnv:TZ:Asia/Tokyo}"
     }
   },
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",

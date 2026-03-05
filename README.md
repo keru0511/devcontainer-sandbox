@@ -48,13 +48,15 @@
 }
 ```
 
-### AI ツール
+### AI ツール・パッケージマネージャ
 
 コンテナ作成後に自動インストールされる（`postCreateCommand`）:
 
-- `claude` (`@anthropic-ai/claude-code@2.1.69`)
-- `codex` (`@openai/codex@0.106.0`)
-- `pnpm` (`pnpm@10.30.3`)
+| ツール | 用途 |
+|---|---|
+| claude (`@anthropic-ai/claude-code`) | AI コーディングアシスタント |
+| codex (`@openai/codex`) | AI コーディングアシスタント |
+| pnpm | Node.js パッケージマネージャ |
 
 バージョンは `devcontainer.json` の `containerEnv` で固定しており、必要に応じて更新できる。
 
