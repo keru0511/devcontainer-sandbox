@@ -6,10 +6,15 @@ CODEX_VERSION="${CODEX_VERSION:-0.106.0}"
 PNPM_VERSION="${PNPM_VERSION:-10.30.3}"
 
 # Install AI tools
-npm install -g \
+npm install -g "pnpm@${PNPM_VERSION}"
+export PNPM_HOME="${HOME}/.local/share/pnpm"
+mkdir -p "${PNPM_HOME}"
+export PATH="${PNPM_HOME}:${PATH}"
+grep -qF 'PNPM_HOME' ~/.zshrc || echo 'export PNPM_HOME="${HOME}/.local/share/pnpm"
+export PATH="${PNPM_HOME}:${PATH}"' >> ~/.zshrc
+pnpm add -g \
   "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" \
-  "@openai/codex@${CODEX_VERSION}" \
-  "pnpm@${PNPM_VERSION}"
+  "@openai/codex@${CODEX_VERSION}"
 
 # Setup SSH keys if mounted
 if [ -d "$HOME/.ssh-host" ]; then

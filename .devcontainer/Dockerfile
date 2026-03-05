@@ -27,8 +27,9 @@ RUN SNIPPET="export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhisto
   && touch /commandhistory/.bash_history \
   && chown -R ${USERNAME} /commandhistory
 
-# Workspace
-RUN mkdir -p /workspace && chown ${USERNAME}:${USERNAME} /workspace
+# Workspace and config directories
+RUN mkdir -p /workspace /home/${USERNAME}/.claude && \
+  chown -R ${USERNAME}:${USERNAME} /workspace /home/${USERNAME}/.claude
 
 ENV DEVCONTAINER=true
 ENV SHELL=/bin/zsh
