@@ -27,9 +27,13 @@ RUN SNIPPET="export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhisto
   && touch /commandhistory/.bash_history \
   && chown -R ${USERNAME} /commandhistory
 
-# Workspace and config directories
-RUN mkdir -p /workspace /home/${USERNAME}/.claude && \
-  chown -R ${USERNAME}:${USERNAME} /workspace /home/${USERNAME}/.claude
+ARG PNPM_VERSION=10.30.3
+ARG CLAUDE_CODE_VERSION=2.1.69
+ARG CODEX_VERSION=0.106.0
+
+# Config directories
+RUN mkdir -p /home/${USERNAME}/.claude && \
+  chown -R ${USERNAME}:${USERNAME} /home/${USERNAME}/.claude
 
 ENV DEVCONTAINER=true
 ENV SHELL=/bin/zsh
@@ -39,9 +43,21 @@ ENV VISUAL=nano
 # Firewall (optional: only functional when init-firewall.sh is present)
 COPY init-firewall.sh firewall-status.sh /usr/local/bin/
 COPY allowed-domains.conf /etc/allowed-domains.conf
-RUN chmod +x /usr/local/bin/init-firewall.sh /usr/local/bin/firewall-status.sh && \
+COPY postCreate.sh /usr/local/bin/postCreate.sh
+RUN chmod +x /usr/local/bin/init-firewall.sh /usr/local/bin/firewall-status.sh /usr/local/bin/postCreate.sh && \
   echo "${USERNAME} ALL=(root) NOPASSWD: /usr/local/bin/init-firewall.sh" > /etc/sudoers.d/${USERNAME}-firewall && \
   chmod 0440 /etc/sudoers.d/${USERNAME}-firewall
 
 USER ${USERNAME}
-WORKDIR /workspace
+
+# Install AI tools at build time
+ENV PNPM_HOME="/home/${USERNAME}/.local/share/pnpm"
+ENV PATH="${PNPM_HOME}:${PATH}"
+RUN npm install -g "pnpm@${PNPM_VERSION}" && \
+  mkdir -p "${PNPM_HOME}" && \
+  grep -qF 'PNPM_HOME' ~/.zshrc || printf 'export PNPM_HOME="${HOME}/.local/share/pnpm"\nexport PATH="${PNPM_HOME}:${PATH}"\n' >> ~/.zshrc && \
+  pnpm add -g \
+    "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" \
+    "@openai/codex@${CODEX_VERSION}"
+
+WORKDIR /home/${USERNAME}/projects

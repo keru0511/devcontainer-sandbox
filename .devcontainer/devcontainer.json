@@ -6,7 +6,6 @@
       "TZ": "${localEnv:TZ:Asia/Tokyo}"
     }
   },
-  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
   "features": {
     // --- Languages (uncomment what you need) ---
     "ghcr.io/devcontainers/features/node:1": { "version": "22" },
@@ -53,13 +52,10 @@
   ],
   "containerEnv": {
     "CLAUDE_CONFIG_DIR": "/home/dev/.claude",
-    "POWERLEVEL9K_DISABLE_GITSTATUS": "true",
-    "CLAUDE_CODE_VERSION": "2.1.69",
-    "CODEX_VERSION": "0.106.0",
-    "PNPM_VERSION": "10.30.3"
+    "POWERLEVEL9K_DISABLE_GITSTATUS": "true"
   },
-  "postCreateCommand": "bash .devcontainer/postCreate.sh",
+  "postCreateCommand": "bash /usr/local/bin/postCreate.sh",
   "postStartCommand": "if [ -f /usr/local/bin/init-firewall.sh ]; then sudo /usr/local/bin/init-firewall.sh; fi",
   "waitFor": "postStartCommand",
-  "workspaceFolder": "/workspace"
+  "workspaceFolder": "/home/dev/projects"
 }
