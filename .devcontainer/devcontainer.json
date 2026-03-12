@@ -9,10 +9,10 @@
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
   "features": {
     // --- Languages (uncomment what you need) ---
-    "ghcr.io/devcontainers/features/node:1": { "version": "22" },
+    // "ghcr.io/devcontainers/features/node:1": { "version": "22" },
     // "ghcr.io/devcontainers/features/python:1": { "version": "3.12" },
     // "ghcr.io/devcontainers/features/rust:1": { "profile": "minimal" },
-    // "ghcr.io/devcontainers/features/go:1": { "version": "latest" },
+    "ghcr.io/devcontainers/features/go:1": { "version": "latest" },
     // "ghcr.io/devcontainers/features/java:1": { "version": "21" },
     // "ghcr.io/devcontainers/features/ruby:1": { "version": "latest" },
     // "ghcr.io/devcontainers-extra/features/elixir-asdf:1": {} // archived; use with caution
