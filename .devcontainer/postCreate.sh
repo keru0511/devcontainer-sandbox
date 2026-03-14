@@ -5,6 +5,9 @@ CLAUDE_CODE_VERSION="${CLAUDE_CODE_VERSION:-2.1.69}"
 CODEX_VERSION="${CODEX_VERSION:-0.106.0}"
 PNPM_VERSION="${PNPM_VERSION:-10.30.3}"
 
+# Install Go security tools (runs before the firewall; full network access here)
+go install golang.org/x/vuln/cmd/govulncheck@latest
+
 # Install AI tools
 npm install -g "pnpm@${PNPM_VERSION}"
 export PNPM_HOME="${HOME}/.local/share/pnpm"

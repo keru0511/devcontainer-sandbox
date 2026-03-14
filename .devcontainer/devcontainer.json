@@ -9,7 +9,7 @@
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
   "features": {
     // --- Languages (uncomment what you need) ---
-    // "ghcr.io/devcontainers/features/node:1": { "version": "22" },
+    "ghcr.io/devcontainers/features/node:1": { "version": "22" },
     // "ghcr.io/devcontainers/features/python:1": { "version": "3.12" },
     // "ghcr.io/devcontainers/features/rust:1": { "profile": "minimal" },
     "ghcr.io/devcontainers/features/go:1": { "version": "latest" },
@@ -56,7 +56,9 @@
     "POWERLEVEL9K_DISABLE_GITSTATUS": "true",
     "CLAUDE_CODE_VERSION": "2.1.69",
     "CODEX_VERSION": "0.106.0",
-    "PNPM_VERSION": "10.30.3"
+    "PNPM_VERSION": "10.30.3",
+    "GONOSUMCHECK": "*",
+    "GONOSUMDB": "*"
   },
   "postCreateCommand": "bash .devcontainer/postCreate.sh",
   "postStartCommand": "if [ -f /usr/local/bin/init-firewall.sh ]; then sudo /usr/local/bin/init-firewall.sh; fi",
