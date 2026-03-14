@@ -14,13 +14,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/quest-one/quest-one/internal/adapters/keychain"
 	"github.com/quest-one/quest-one/internal/domain"
 )
-
-const keychainService = "quest-one"
 
 // Adapter fetches NotePM notes accessible to the authenticated user.
 type Adapter struct {
@@ -43,7 +42,7 @@ func (a *Adapter) SourceType() domain.SourceType { return domain.SourceTypeNoteP
 // implements ports.SourceAdapter.
 func (a *Adapter) Sync(ctx context.Context, integration domain.Integration) ([]domain.SourceItem, error) {
 	account := fmt.Sprintf("notepm.%s", integration.ID)
-	token, err := a.secrets.Get(keychainService, account)
+	token, err := a.secrets.Get(keychain.ServiceName, account)
 	if err != nil {
 		return nil, fmt.Errorf("notepm adapter: credentials: %w", err)
 	}
@@ -86,7 +85,7 @@ func (a *Adapter) Sync(ctx context.Context, integration domain.Integration) ([]d
 		item := domain.NewSourceItem(
 			"",
 			domain.SourceTypeNotePM,
-			fmt.Sprintf("%d", note.ID),
+			strconv.Itoa(note.ID),
 			note.Title,
 		)
 		item.Description = note.Body

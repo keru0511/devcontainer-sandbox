@@ -21,7 +21,6 @@ import (
 	"github.com/quest-one/quest-one/internal/domain"
 )
 
-const keychainService = "quest-one"
 const slackAPIBase = "https://slack.com/api"
 
 // Adapter fetches Slack reminders for the authenticated user.
@@ -45,7 +44,7 @@ func (a *Adapter) SourceType() domain.SourceType { return domain.SourceTypeSlack
 // implements ports.SourceAdapter.
 func (a *Adapter) Sync(ctx context.Context, integration domain.Integration) ([]domain.SourceItem, error) {
 	account := fmt.Sprintf("slack.%s", integration.ID)
-	token, err := a.secrets.Get(keychainService, account)
+	token, err := a.secrets.Get(keychain.ServiceName, account)
 	if err != nil {
 		return nil, fmt.Errorf("slack adapter: credentials: %w", err)
 	}

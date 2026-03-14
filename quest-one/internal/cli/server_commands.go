@@ -44,8 +44,11 @@ func setupCmd(app *application.App) *cobra.Command {
 		Use:   "setup",
 		Short: "Interactive first-run setup wizard",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			settings, _ := app.GetSettings(cmd.Context())
+			settings, err := app.GetSettings(cmd.Context())
 			w := cmd.OutOrStdout()
+			if err != nil {
+				fmt.Fprintf(w, "Warning: could not load existing settings (%v), using defaults.\n", err)
+			}
 
 			fmt.Fprintln(w, "=== quest-one setup ===")
 			fmt.Fprintf(w, "Data directory [%s]: ", settings.DataDir)

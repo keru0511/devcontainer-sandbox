@@ -57,6 +57,7 @@ func NewWithIO(app *application.App, log *slog.Logger, in io.Reader, out io.Writ
 // Run starts the stdio JSON-RPC loop. Blocks until ctx is cancelled or EOF.
 func (s *Server) Run(ctx context.Context) error {
 	scanner := bufio.NewScanner(s.in)
+	scanner.Buffer(make([]byte, 1<<20), 1<<20) // 1 MiB — handles large tool responses
 	enc := json.NewEncoder(s.out)
 
 	for scanner.Scan() {
@@ -73,26 +74,32 @@ func (s *Server) Run(ctx context.Context) error {
 
 		var req jsonRPCRequest
 		if err := json.Unmarshal(line, &req); err != nil {
-			_ = enc.Encode(errorResponse(nil, -32700, "parse error"))
+			if err := enc.Encode(errorResponse(nil, -32700, "parse error")); err != nil {
+				return fmt.Errorf("mcp: write: %w", err)
+			}
 			continue
 		}
 
 		result, rpcErr := s.dispatch(ctx, req.Method, req.Params)
 		if rpcErr != nil {
-			_ = enc.Encode(jsonRPCResponse{
+			if err := enc.Encode(jsonRPCResponse{
 				JSONRPC: "2.0",
 				ID:      req.ID,
 				Error:   rpcErr,
-			})
+			}); err != nil {
+				return fmt.Errorf("mcp: write: %w", err)
+			}
 			continue
 		}
 
 		resultJSON, _ := json.Marshal(result)
-		_ = enc.Encode(jsonRPCResponse{
+		if err := enc.Encode(jsonRPCResponse{
 			JSONRPC: "2.0",
 			ID:      req.ID,
 			Result:  resultJSON,
-		})
+		}); err != nil {
+			return fmt.Errorf("mcp: write: %w", err)
+		}
 	}
 
 	return scanner.Err()

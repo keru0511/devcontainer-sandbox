@@ -11,6 +11,9 @@ import (
 	"strings"
 )
 
+// ServiceName is the keychain service name used by all quest-one adapters.
+const ServiceName = "quest-one"
+
 // SecretStore provides read/write access to OS-level credential storage.
 type SecretStore interface {
 	Get(service, account string) (string, error)
@@ -38,7 +41,7 @@ func (d *darwinKeychain) Get(service, account string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("keychain: get %s/%s: %w", service, account, err)
 	}
-	return strings.TrimRight(string(out), "\n"), nil
+	return strings.TrimSuffix(string(out), "\n"), nil
 }
 
 func (d *darwinKeychain) Set(service, account, secret string) error {

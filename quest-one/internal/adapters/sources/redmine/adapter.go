@@ -15,13 +15,12 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/quest-one/quest-one/internal/adapters/keychain"
 	"github.com/quest-one/quest-one/internal/domain"
 )
-
-const keychainService = "quest-one"
 
 // Adapter fetches Redmine issues assigned to the authenticated user.
 type Adapter struct {
@@ -44,7 +43,7 @@ func (a *Adapter) SourceType() domain.SourceType { return domain.SourceTypeRedmi
 // implements ports.SourceAdapter.
 func (a *Adapter) Sync(ctx context.Context, integration domain.Integration) ([]domain.SourceItem, error) {
 	account := fmt.Sprintf("redmine.%s", integration.ID)
-	apiKey, err := a.secrets.Get(keychainService, account)
+	apiKey, err := a.secrets.Get(keychain.ServiceName, account)
 	if err != nil {
 		return nil, fmt.Errorf("redmine adapter: credentials: %w", err)
 	}
@@ -55,7 +54,7 @@ func (a *Adapter) Sync(ctx context.Context, integration domain.Integration) ([]d
 		"limit":          {"100"},
 	}
 	if integration.SyncFilters.MaxItems > 0 {
-		params.Set("limit", fmt.Sprintf("%d", integration.SyncFilters.MaxItems))
+		params.Set("limit", strconv.Itoa(integration.SyncFilters.MaxItems))
 	}
 	if len(integration.SyncFilters.ProjectKeys) > 0 {
 		params.Set("project_id", integration.SyncFilters.ProjectKeys[0])
@@ -90,7 +89,7 @@ func (a *Adapter) Sync(ctx context.Context, integration domain.Integration) ([]d
 		item := domain.NewSourceItem(
 			"", // ID assigned by sync use case
 			domain.SourceTypeRedmine,
-			fmt.Sprintf("%d", issue.ID),
+			strconv.Itoa(issue.ID),
 			issue.Subject,
 		)
 		item.Description = issue.Description
@@ -98,7 +97,7 @@ func (a *Adapter) Sync(ctx context.Context, integration domain.Integration) ([]d
 		item.Priority = issue.Priority.ID
 		item.Status = issue.Status.Name
 		item.ProjectID = issue.Project.Identifier
-		item.AssigneeID = fmt.Sprintf("%d", issue.AssignedTo.ID)
+		item.AssigneeID = strconv.Itoa(issue.AssignedTo.ID)
 		item.LastSyncedAt = now
 		if issue.DueDate != "" {
 			if t, err := time.Parse("2006-01-02", issue.DueDate); err == nil {
