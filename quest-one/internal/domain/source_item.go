@@ -20,22 +20,22 @@ type SourceItemID string
 // SourceItem represents a work item fetched from an external system.
 // Multiple source items can be linked to a single task.
 type SourceItem struct {
-	ID            SourceItemID
-	SourceType    SourceType
-	ExternalID    string // ID in the external system
-	Title         string
-	Description   string
-	URL           string
-	Priority      int    // raw priority from source system
-	Status        string // status string as reported by source
-	AssigneeID    string // external user identifier
-	ProjectID     string // external project identifier
-	Labels        []string
-	DueDate       *time.Time
-	LastSyncedAt  time.Time
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
-	RawPayload    []byte // JSON snapshot from last sync
+	ID           SourceItemID
+	SourceType   SourceType
+	ExternalID   string // ID in the external system
+	Title        string
+	Description  string
+	URL          string
+	Priority     int    // raw priority from source system
+	Status       string // status string as reported by source
+	AssigneeID   string // external user identifier
+	ProjectID    string // external project identifier
+	Labels       []string
+	DueDate      *time.Time
+	LastSyncedAt time.Time
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	RawPayload   []byte // JSON snapshot from last sync
 }
 
 // NewSourceItem constructs a new SourceItem.

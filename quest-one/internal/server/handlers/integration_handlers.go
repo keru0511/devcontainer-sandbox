@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+
 	"github.com/quest-one/quest-one/internal/application"
 	"github.com/quest-one/quest-one/internal/domain"
 )
@@ -20,10 +21,10 @@ func (h *Handlers) APIListIntegrations(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handlers) APICreateIntegration(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		Provider string              `json:"provider"`
-		Name     string              `json:"name"`
-		BaseURL  string              `json:"base_url"`
-		Filters  domain.SyncFilters  `json:"filters"`
+		Provider string             `json:"provider"`
+		Name     string             `json:"name"`
+		BaseURL  string             `json:"base_url"`
+		Filters  domain.SyncFilters `json:"filters"`
 	}
 	if err := decodeJSON(r, &body); err != nil {
 		respondError(w, http.StatusBadRequest, "invalid JSON")

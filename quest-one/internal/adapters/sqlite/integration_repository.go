@@ -98,13 +98,13 @@ func (r *IntegrationRepository) Delete(ctx context.Context, id domain.Integratio
 
 func scanIntegration(s scanner) (domain.Integration, error) {
 	var (
-		i            domain.Integration
-		provider     string
-		enabledInt   int
-		filtersJSON  string
-		lastSynced   *string
-		createdAt    string
-		updatedAt    string
+		i           domain.Integration
+		provider    string
+		enabledInt  int
+		filtersJSON string
+		lastSynced  *string
+		createdAt   string
+		updatedAt   string
 	)
 	err := s.Scan(
 		&i.ID, &provider, &i.Name, &i.BaseURL,

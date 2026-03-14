@@ -1,3 +1,5 @@
+version: "2"
+
 run:
   timeout: 5m
   modules-download-mode: readonly
@@ -5,30 +7,44 @@ run:
 linters:
   enable:
     - errcheck
-    - gosimple
     - govet
     - ineffassign
     - staticcheck
     - unused
-    - gofmt
-    - goimports
     - misspell
     - revive
     - exhaustive
+  settings:
+    goimports:
+      local-prefixes: github.com/quest-one/quest-one
+    errcheck:
+      # defer X.Close() and fmt.Print* are idiomatic patterns; errors are not actionable.
+      exclude-functions:
+        - (io.Closer).Close
+        - (*net/http.Response.Body).Close
+        - (*database/sql.Rows).Close
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
+        - fmt.Fscanln
+    revive:
+      rules:
+        # exported doc-comment rules are too noisy for internal-only packages.
+        - name: exported
+          disabled: true
+        - name: package-comments
+          disabled: true
 
-linters-settings:
-  goimports:
-    local-prefixes: github.com/quest-one/quest-one
-  revive:
-    rules:
-      - name: exported
-        disabled: false
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes: github.com/quest-one/quest-one
 
 issues:
   exclude-rules:
-    # Allow unused parameters in interface implementations
-    - linters: [revive]
-      text: "unused-parameter"
-    # Templ-generated files
-    - path: "_templ.go"
+    # Templ-generated files.
+    - path: "_templ\\.go"
       linters: [all]

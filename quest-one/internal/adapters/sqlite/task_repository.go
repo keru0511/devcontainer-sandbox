@@ -169,15 +169,15 @@ type scanner interface {
 
 func scanTask(s scanner) (domain.Task, error) {
 	var (
-		t           domain.Task
-		status      string
-		dueDate     *string
-		completedAt *string
-		parentID    *string
-		tagsJSON    string
+		t            domain.Task
+		status       string
+		dueDate      *string
+		completedAt  *string
+		parentID     *string
+		tagsJSON     string
 		priorityJSON string
-		createdAt   string
-		updatedAt   string
+		createdAt    string
+		updatedAt    string
 	)
 	err := s.Scan(
 		&t.ID, &t.Title, &t.Description, &status, &t.Memo,

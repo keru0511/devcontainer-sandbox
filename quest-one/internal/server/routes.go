@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+
 	"github.com/quest-one/quest-one/internal/application"
 	"github.com/quest-one/quest-one/internal/server/handlers"
 	"github.com/quest-one/quest-one/internal/web"

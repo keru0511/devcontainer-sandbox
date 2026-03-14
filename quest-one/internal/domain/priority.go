@@ -4,10 +4,10 @@ package domain
 type UrgencyLevel int
 
 const (
-	UrgencyNone    UrgencyLevel = 0
-	UrgencyLow     UrgencyLevel = 1
-	UrgencyMedium  UrgencyLevel = 2
-	UrgencyHigh    UrgencyLevel = 3
+	UrgencyNone     UrgencyLevel = 0
+	UrgencyLow      UrgencyLevel = 1
+	UrgencyMedium   UrgencyLevel = 2
+	UrgencyHigh     UrgencyLevel = 3
 	UrgencyCritical UrgencyLevel = 4
 	UrgencyMax      UrgencyLevel = UrgencyCritical
 )
@@ -43,7 +43,7 @@ type PriorityScore struct {
 	SourcePriority  int // raw priority from source system
 	WaitingDays     int
 	DependencyDepth int
-	RecencyScore    int // 0-100
+	RecencyScore    int    // 0-100
 	CreationOrder   string // ULID of the task (lexicographically sortable)
 }
 

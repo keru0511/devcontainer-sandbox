@@ -110,13 +110,13 @@ func (r *SourceItemRepository) Delete(ctx context.Context, id domain.SourceItemI
 
 func scanSourceItem(s scanner) (domain.SourceItem, error) {
 	var (
-		item        domain.SourceItem
-		sourceType  string
-		labelsJSON  string
-		dueDate     *string
-		lastSynced  string
-		createdAt   string
-		updatedAt   string
+		item       domain.SourceItem
+		sourceType string
+		labelsJSON string
+		dueDate    *string
+		lastSynced string
+		createdAt  string
+		updatedAt  string
 	)
 	err := s.Scan(
 		&item.ID, &sourceType, &item.ExternalID, &item.Title, &item.Description,

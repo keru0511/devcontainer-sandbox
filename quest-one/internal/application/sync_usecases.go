@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/oklog/ulid/v2"
+
 	"github.com/quest-one/quest-one/internal/domain"
 	"github.com/quest-one/quest-one/internal/ports"
 )

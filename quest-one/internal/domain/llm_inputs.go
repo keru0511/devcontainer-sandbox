@@ -7,15 +7,15 @@ import (
 
 // LLMTaskSummary is a compact representation of a task sent to the LLM.
 type LLMTaskSummary struct {
-	ID          string   `json:"id"`
-	Title       string   `json:"title"`
-	Description string   `json:"description,omitempty"`
-	Status      string   `json:"status"`
-	Tags        []string `json:"tags,omitempty"`
-	DueDate     *string  `json:"due_date,omitempty"` // RFC3339
-	WaitingDays int      `json:"waiting_days,omitempty"`
-	BlocksCount int      `json:"blocks_count,omitempty"`
-	SourceType  string   `json:"source_type,omitempty"`
+	ID          string    `json:"id"`
+	Title       string    `json:"title"`
+	Description string    `json:"description,omitempty"`
+	Status      string    `json:"status"`
+	Tags        []string  `json:"tags,omitempty"`
+	DueDate     *string   `json:"due_date,omitempty"` // RFC3339
+	WaitingDays int       `json:"waiting_days,omitempty"`
+	BlocksCount int       `json:"blocks_count,omitempty"`
+	SourceType  string    `json:"source_type,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 }
 

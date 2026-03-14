@@ -6,9 +6,10 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/spf13/cobra"
+
 	"github.com/quest-one/quest-one/internal/application"
 	"github.com/quest-one/quest-one/internal/server"
-	"github.com/spf13/cobra"
 )
 
 func serveCmd(app *application.App) *cobra.Command {

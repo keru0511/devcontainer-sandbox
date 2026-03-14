@@ -21,8 +21,8 @@ type IntegrationID string
 type Integration struct {
 	ID           IntegrationID
 	Provider     IntegrationProvider
-	Name         string  // user-facing display name
-	BaseURL      string  // e.g., "https://redmine.example.com"
+	Name         string // user-facing display name
+	BaseURL      string // e.g., "https://redmine.example.com"
 	Enabled      bool
 	SyncFilters  SyncFilters
 	LastSyncedAt *time.Time

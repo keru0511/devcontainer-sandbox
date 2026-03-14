@@ -5,6 +5,7 @@ import (
 	"context"
 
 	"github.com/spf13/cobra"
+
 	"github.com/quest-one/quest-one/internal/application"
 )
 
