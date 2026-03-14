@@ -15,6 +15,23 @@ import (
 	"github.com/quest-one/quest-one/internal/domain"
 )
 
+// JSON-RPC method names.
+const (
+	methodInitialize = "initialize"
+	methodToolsList  = "tools/list"
+	methodToolsCall  = "tools/call"
+)
+
+// MCP tool names.
+const (
+	toolNextTask     = "next_task"
+	toolAddTask      = "add_task"
+	toolListTasks    = "list_tasks"
+	toolCompleteTask = "complete_task"
+	toolCandidates   = "candidates"
+	toolSearchTasks  = "search_tasks"
+)
+
 // jsonRPCRequest is a JSON-RPC 2.0 request.
 type jsonRPCRequest struct {
 	JSONRPC string          `json:"jsonrpc"`
@@ -117,11 +134,11 @@ func (s *Server) Run(ctx context.Context) error {
 
 func (s *Server) dispatch(ctx context.Context, method string, params json.RawMessage) (any, *jsonRPCError) {
 	switch method {
-	case "initialize":
+	case methodInitialize:
 		return s.handleInitialize()
-	case "tools/list":
+	case methodToolsList:
 		return s.handleToolsList()
-	case "tools/call":
+	case methodToolsCall:
 		return s.handleToolsCall(ctx, params)
 	default:
 		return nil, &jsonRPCError{Code: -32601, Message: fmt.Sprintf("method not found: %s", method)}
@@ -142,12 +159,12 @@ func (s *Server) handleInitialize() (any, *jsonRPCError) {
 func (s *Server) handleToolsList() (any, *jsonRPCError) {
 	tools := []map[string]any{
 		{
-			"name":        "next_task",
+			"name":        toolNextTask,
 			"description": "Get the highest-priority active task",
 			"inputSchema": map[string]any{"type": "object", "properties": map[string]any{}},
 		},
 		{
-			"name":        "add_task",
+			"name":        toolAddTask,
 			"description": "Add a new task",
 			"inputSchema": map[string]any{
 				"type": "object",
@@ -159,7 +176,7 @@ func (s *Server) handleToolsList() (any, *jsonRPCError) {
 			},
 		},
 		{
-			"name":        "list_tasks",
+			"name":        toolListTasks,
 			"description": "List active tasks ordered by priority",
 			"inputSchema": map[string]any{
 				"type": "object",
@@ -169,7 +186,7 @@ func (s *Server) handleToolsList() (any, *jsonRPCError) {
 			},
 		},
 		{
-			"name":        "complete_task",
+			"name":        toolCompleteTask,
 			"description": "Mark a task as completed",
 			"inputSchema": map[string]any{
 				"type":       "object",
@@ -178,7 +195,7 @@ func (s *Server) handleToolsList() (any, *jsonRPCError) {
 			},
 		},
 		{
-			"name":        "candidates",
+			"name":        toolCandidates,
 			"description": "Get the top N priority tasks",
 			"inputSchema": map[string]any{
 				"type": "object",
@@ -188,7 +205,7 @@ func (s *Server) handleToolsList() (any, *jsonRPCError) {
 			},
 		},
 		{
-			"name":        "search_tasks",
+			"name":        toolSearchTasks,
 			"description": "Full-text search over tasks",
 			"inputSchema": map[string]any{
 				"type":       "object",
@@ -213,32 +230,41 @@ func (s *Server) handleToolsCall(ctx context.Context, params json.RawMessage) (a
 	var err error
 
 	switch p.Name {
-	case "next_task":
+	case toolNextTask:
 		result, err = s.app.NextTask(ctx)
-	case "add_task":
-		title, _ := p.Arguments["title"].(string)
+	case toolAddTask:
+		title, ok := p.Arguments["title"].(string)
+		if !ok || title == "" {
+			return nil, &jsonRPCError{Code: -32602, Message: "add_task: missing required argument: title"}
+		}
 		desc, _ := p.Arguments["description"].(string)
 		result, err = s.app.AddTask(ctx, application.AddTaskInput{
 			Title:       title,
 			Description: desc,
 		})
-	case "list_tasks":
+	case toolListTasks:
 		n := 20
 		if v, ok := p.Arguments["limit"].(float64); ok {
 			n = int(v)
 		}
 		result, err = s.app.ListTasks(ctx, application.ListTasksInput{Limit: n})
-	case "complete_task":
-		id, _ := p.Arguments["id"].(string)
+	case toolCompleteTask:
+		id, ok := p.Arguments["id"].(string)
+		if !ok || id == "" {
+			return nil, &jsonRPCError{Code: -32602, Message: "complete_task: missing required argument: id"}
+		}
 		result, err = s.app.CompleteTask(ctx, domain.TaskID(id))
-	case "candidates":
+	case toolCandidates:
 		n := 5
 		if v, ok := p.Arguments["n"].(float64); ok {
 			n = int(v)
 		}
 		result, err = s.app.Candidates(ctx, n)
-	case "search_tasks":
-		q, _ := p.Arguments["query"].(string)
+	case toolSearchTasks:
+		q, ok := p.Arguments["query"].(string)
+		if !ok || q == "" {
+			return nil, &jsonRPCError{Code: -32602, Message: "search_tasks: missing required argument: query"}
+		}
 		result, err = s.app.SearchTasks(ctx, q, 20)
 	default:
 		return nil, &jsonRPCError{Code: -32601, Message: "unknown tool: " + p.Name}
@@ -248,7 +274,10 @@ func (s *Server) handleToolsCall(ctx context.Context, params json.RawMessage) (a
 		return nil, &jsonRPCError{Code: -32000, Message: err.Error()}
 	}
 
-	b, _ := json.Marshal(result)
+	b, err := json.Marshal(result)
+	if err != nil {
+		return nil, &jsonRPCError{Code: -32603, Message: "internal error: marshal tool result"}
+	}
 	return map[string]any{
 		"content": []map[string]any{
 			{"type": "text", "text": string(b)},

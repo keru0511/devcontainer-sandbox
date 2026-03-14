@@ -15,7 +15,10 @@ import (
 
 func runMCPRequest(t *testing.T, req map[string]any) map[string]any {
 	t.Helper()
-	reqJSON, _ := json.Marshal(req)
+	reqJSON, err := json.Marshal(req)
+	if err != nil {
+		t.Fatalf("marshal request: %v", err)
+	}
 	out := &bytes.Buffer{}
 	app := &application.App{
 		Events:   events.NewLogPublisher(slog.Default()),
@@ -23,7 +26,9 @@ func runMCPRequest(t *testing.T, req map[string]any) map[string]any {
 		Log:      slog.Default(),
 	}
 	s := mcp.NewWithIO(app, slog.Default(), bytes.NewReader(append(reqJSON, '\n')), out)
-	_ = s.Run(context.Background())
+	if err := s.Run(context.Background()); err != nil {
+		t.Fatalf("server run: %v", err)
+	}
 	var resp map[string]any
 	if err := json.Unmarshal(bytes.TrimRight(out.Bytes(), "\n"), &resp); err != nil {
 		t.Fatalf("unmarshal response: %v (raw: %s)", err, out.Bytes())
