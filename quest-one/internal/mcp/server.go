@@ -54,10 +54,14 @@ func NewWithIO(app *application.App, log *slog.Logger, in io.Reader, out io.Writ
 	return &Server{app: app, log: log, in: in, out: out}
 }
 
+// scannerBufSize is the maximum line size the MCP scanner will accept.
+// 1 MiB is sufficient for large tool responses (e.g. full task lists).
+const scannerBufSize = 1 << 20
+
 // Run starts the stdio JSON-RPC loop. Blocks until ctx is cancelled or EOF.
 func (s *Server) Run(ctx context.Context) error {
 	scanner := bufio.NewScanner(s.in)
-	scanner.Buffer(make([]byte, 1<<20), 1<<20) // 1 MiB — handles large tool responses
+	scanner.Buffer(make([]byte, scannerBufSize), scannerBufSize)
 	enc := json.NewEncoder(s.out)
 
 	for scanner.Scan() {
@@ -92,8 +96,14 @@ func (s *Server) Run(ctx context.Context) error {
 			continue
 		}
 
-		resultJSON, _ := json.Marshal(result)
-		if err := enc.Encode(jsonRPCResponse{
+		resultJSON, err := json.Marshal(result)
+		if err != nil {
+			if err := enc.Encode(errorResponse(req.ID, -32603, "internal error: marshal result")); err != nil {
+				return fmt.Errorf("mcp: write: %w", err)
+			}
+			continue
+		}
+		if err = enc.Encode(jsonRPCResponse{
 			JSONRPC: "2.0",
 			ID:      req.ID,
 			Result:  resultJSON,

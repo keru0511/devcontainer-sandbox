@@ -13,19 +13,16 @@ import (
 	"github.com/quest-one/quest-one/internal/mcp"
 )
 
-func newTestApp() *application.App {
-	return &application.App{
-		Events:   events.NewLogPublisher(slog.Default()),
-		Priority: priority.New(),
-		Log:      slog.Default(),
-	}
-}
-
 func runMCPRequest(t *testing.T, req map[string]any) map[string]any {
 	t.Helper()
 	reqJSON, _ := json.Marshal(req)
 	out := &bytes.Buffer{}
-	s := mcp.NewWithIO(newTestApp(), slog.Default(), bytes.NewReader(append(reqJSON, '\n')), out)
+	app := &application.App{
+		Events:   events.NewLogPublisher(slog.Default()),
+		Priority: priority.New(),
+		Log:      slog.Default(),
+	}
+	s := mcp.NewWithIO(app, slog.Default(), bytes.NewReader(append(reqJSON, '\n')), out)
 	_ = s.Run(context.Background())
 	var resp map[string]any
 	if err := json.Unmarshal(bytes.TrimRight(out.Bytes(), "\n"), &resp); err != nil {
