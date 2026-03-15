@@ -6,6 +6,8 @@ CMD := ./cmd/quest-one
 
 # Go flags
 CGO_ENABLED := 1
+# sqlite_fts5 enables FTS5 full-text search in the mattn/go-sqlite3 driver.
+BUILD_TAGS := sqlite_fts5
 GOFLAGS := CGO_ENABLED=$(CGO_ENABLED)
 
 all: generate build
@@ -16,15 +18,15 @@ generate:
 
 ## build: Build the binary
 build:
-	$(GOFLAGS) go build -o $(BIN) $(CMD)
+	$(GOFLAGS) go build -tags $(BUILD_TAGS) -o $(BIN) $(CMD)
 
 ## install: Install to GOBIN
 install:
-	$(GOFLAGS) go install $(CMD)
+	$(GOFLAGS) go install -tags $(BUILD_TAGS) $(CMD)
 
 ## test: Run all tests
 test:
-	$(GOFLAGS) go test -race -count=1 ./...
+	$(GOFLAGS) go test -tags $(BUILD_TAGS) -race -count=1 ./...
 
 ## test-domain: Run only domain unit tests (no CGO required)
 test-domain:
@@ -32,7 +34,7 @@ test-domain:
 
 ## test-short: Run tests with -short flag (skip integration tests)
 test-short:
-	$(GOFLAGS) go test -short -race -count=1 ./...
+	$(GOFLAGS) go test -tags $(BUILD_TAGS) -short -race -count=1 ./...
 
 ## lint: Run golangci-lint
 lint:
@@ -62,7 +64,7 @@ vuln:
 
 ## build-darwin-universal: Cross-compile Universal Binary for macOS
 build-darwin-universal:
-	GOOS=darwin GOARCH=amd64 $(GOFLAGS) go build -o $(BIN)-darwin-amd64 $(CMD)
-	GOOS=darwin GOARCH=arm64 $(GOFLAGS) go build -o $(BIN)-darwin-arm64 $(CMD)
+	GOOS=darwin GOARCH=amd64 $(GOFLAGS) go build -tags $(BUILD_TAGS) -o $(BIN)-darwin-amd64 $(CMD)
+	GOOS=darwin GOARCH=arm64 $(GOFLAGS) go build -tags $(BUILD_TAGS) -o $(BIN)-darwin-arm64 $(CMD)
 	lipo -create -output $(BIN)-darwin-universal $(BIN)-darwin-amd64 $(BIN)-darwin-arm64
 	rm $(BIN)-darwin-amd64 $(BIN)-darwin-arm64
