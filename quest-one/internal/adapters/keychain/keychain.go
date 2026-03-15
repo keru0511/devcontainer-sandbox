@@ -14,6 +14,12 @@ import (
 // ServiceName is the keychain service name used by all quest-one adapters.
 const ServiceName = "quest-one"
 
+// AccountKey returns the keychain account identifier for a source adapter.
+// Convention: "<provider>.<integrationID>"
+func AccountKey(provider, integrationID string) string {
+	return provider + "." + integrationID
+}
+
 // SecretStore provides read/write access to OS-level credential storage.
 type SecretStore interface {
 	Get(service, account string) (string, error)
@@ -74,12 +80,10 @@ func (d *darwinKeychain) Delete(service, account string) error {
 // Convention: QUEST_ONE_<ACCOUNT_UPPER> where '/' and '-' are replaced with '_'.
 type envKeychain struct{}
 
+var envVarReplacer = strings.NewReplacer("-", "_", "/", "_", ".", "_")
+
 func envVarName(account string) string {
-	upper := strings.ToUpper(account)
-	upper = strings.ReplaceAll(upper, "-", "_")
-	upper = strings.ReplaceAll(upper, "/", "_")
-	upper = strings.ReplaceAll(upper, ".", "_")
-	return "QUEST_ONE_" + upper
+	return "QUEST_ONE_" + envVarReplacer.Replace(strings.ToUpper(account))
 }
 
 func (e *envKeychain) Get(_, account string) (string, error) {

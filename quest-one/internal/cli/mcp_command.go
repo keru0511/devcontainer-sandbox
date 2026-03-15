@@ -1,9 +1,6 @@
 package cli
 
 import (
-	"log/slog"
-	"os"
-
 	"github.com/spf13/cobra"
 
 	"github.com/quest-one/quest-one/internal/application"
@@ -18,8 +15,7 @@ func mcpCmd(app *application.App) *cobra.Command {
 Model Context Protocol, allowing AI assistants (Claude, etc.) to interact
 with quest-one as a tool provider.`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			log := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))
-			s := mcp.New(app, log)
+			s := mcp.New(app, app.Log)
 			return s.Run(cmd.Context())
 		},
 	}

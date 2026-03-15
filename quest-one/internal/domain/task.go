@@ -93,9 +93,10 @@ func (t *Task) AddMemo(text string) {
 
 // Promote increases the manual urgency of a task by one level.
 func (t *Task) Promote() DomainEvent {
+	old := t.Priority
 	if t.Priority.ManualUrgency < UrgencyMax {
 		t.Priority.ManualUrgency++
 		t.UpdatedAt = time.Now().UTC()
 	}
-	return TaskPriorityChangedEvent{TaskID: t.ID, OldPriority: t.Priority, NewPriority: t.Priority}
+	return TaskPriorityChangedEvent{TaskID: t.ID, OldPriority: old, NewPriority: t.Priority}
 }

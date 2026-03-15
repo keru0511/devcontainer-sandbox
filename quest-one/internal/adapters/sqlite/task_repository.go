@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/quest-one/quest-one/internal/domain"
@@ -31,16 +32,8 @@ func (r *TaskRepository) Save(ctx context.Context, t domain.Task) error {
 		return fmt.Errorf("task_repository: marshal priority: %w", err)
 	}
 
-	var dueDate *string
-	if t.DueDate != nil {
-		s := t.DueDate.UTC().Format(time.RFC3339)
-		dueDate = &s
-	}
-	var completedAt *string
-	if t.CompletedAt != nil {
-		s := t.CompletedAt.UTC().Format(time.RFC3339)
-		completedAt = &s
-	}
+	dueDate := nullableTimeToStr(t.DueDate)
+	completedAt := nullableTimeToStr(t.CompletedAt)
 
 	var parentID *string
 	if t.ParentID != nil {
@@ -69,8 +62,7 @@ func (r *TaskRepository) Save(ctx context.Context, t domain.Task) error {
 		string(t.ID), t.Title, t.Description, string(t.Status), t.Memo,
 		t.ProjectID, parentID, dueDate,
 		string(tagsJSON), string(priorityJSON),
-		t.CreatedAt.UTC().Format(time.RFC3339),
-		t.UpdatedAt.UTC().Format(time.RFC3339),
+		t.CreatedAt.UTC().Format(time.RFC3339), t.UpdatedAt.UTC().Format(time.RFC3339),
 		completedAt,
 	)
 	return err
@@ -112,6 +104,13 @@ func (r *TaskRepository) List(ctx context.Context, f ports.TaskFilter) ([]domain
 			args = append(args, string(s))
 		}
 	}
+	if len(f.Tags) > 0 {
+		// SQLite stores tags as a JSON array; check each tag with json_each.
+		for _, tag := range f.Tags {
+			query += " AND EXISTS (SELECT 1 FROM json_each(tags) WHERE value = ?)"
+			args = append(args, tag)
+		}
+	}
 	if f.ProjectID != nil {
 		query += " AND project_id = ?"
 		args = append(args, *f.ProjectID)
@@ -150,15 +149,21 @@ func (r *TaskRepository) Delete(ctx context.Context, id domain.TaskID) error {
 }
 
 func (r *TaskRepository) NextPriority(ctx context.Context) (*domain.Task, error) {
-	tasks, err := r.FindActive(ctx)
+	row := r.db.QueryRowContext(ctx, `
+		SELECT id, title, description, status, memo, project_id, parent_id, due_date,
+		       tags, priority_json, created_at, updated_at, completed_at
+		FROM tasks
+		WHERE status IN ('todo','in_progress','waiting')
+		ORDER BY priority_json DESC
+		LIMIT 1`)
+	t, err := scanTask(row)
 	if err != nil {
+		if domain.IsNotFound(err) {
+			return nil, nil
+		}
 		return nil, err
 	}
-	if len(tasks) == 0 {
-		return nil, nil
-	}
-	// FindActive already returns sorted tasks; first is highest priority.
-	return &tasks[0], nil
+	return &t, nil
 }
 
 // ---- helpers ----
@@ -198,16 +203,10 @@ func scanTask(s scanner) (domain.Task, error) {
 		pid := domain.TaskID(*parentID)
 		t.ParentID = &pid
 	}
-	if dueDate != nil {
-		d, _ := time.Parse(time.RFC3339, *dueDate)
-		t.DueDate = &d
-	}
-	if completedAt != nil {
-		c, _ := time.Parse(time.RFC3339, *completedAt)
-		t.CompletedAt = &c
-	}
-	t.CreatedAt, _ = time.Parse(time.RFC3339, createdAt)
-	t.UpdatedAt, _ = time.Parse(time.RFC3339, updatedAt)
+	t.DueDate = parseNullableTime(dueDate)
+	t.CompletedAt = parseNullableTime(completedAt)
+	t.CreatedAt = parseTime(createdAt)
+	t.UpdatedAt = parseTime(updatedAt)
 
 	_ = json.Unmarshal([]byte(tagsJSON), &t.Tags)
 	_ = json.Unmarshal([]byte(priorityJSON), &t.Priority)
@@ -228,9 +227,5 @@ func scanTasks(rows *sql.Rows) ([]domain.Task, error) {
 }
 
 func repeatedPlaceholders(n int) string {
-	s := ""
-	for i := 0; i < n; i++ {
-		s += ",?"
-	}
-	return s
+	return strings.Repeat(",?", n)
 }

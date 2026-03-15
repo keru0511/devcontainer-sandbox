@@ -36,7 +36,6 @@ type LLMPrioritizationResult struct {
 type LLMRequest struct {
 	SystemPrompt string
 	UserPrompt   string
-	Model        string
 	MaxTokens    int
 }
 

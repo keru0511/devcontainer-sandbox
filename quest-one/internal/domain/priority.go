@@ -1,5 +1,12 @@
 package domain
 
+import "time"
+
+// DaysUntil returns the number of whole days from now until t (negative if past).
+func DaysUntil(t time.Time) int {
+	return int(time.Until(t).Hours() / 24)
+}
+
 // UrgencyLevel is a manual urgency override (0 = none, higher = more urgent).
 type UrgencyLevel int
 

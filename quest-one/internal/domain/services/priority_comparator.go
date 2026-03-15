@@ -2,6 +2,8 @@
 package services
 
 import (
+	"slices"
+
 	"github.com/quest-one/quest-one/internal/domain"
 )
 
@@ -60,15 +62,10 @@ func Compare(a, b domain.PriorityScore) int {
 }
 
 // SortByPriority sorts a slice of tasks in-place by priority (highest first).
-// Uses a stable sort to preserve insertion order for equal priorities.
 func SortByPriority(tasks []domain.Task) {
-	n := len(tasks)
-	// Insertion sort — stable and fast for typical task list sizes (<1000).
-	for i := 1; i < n; i++ {
-		for j := i; j > 0 && Compare(tasks[j].Priority, tasks[j-1].Priority) < 0; j-- {
-			tasks[j], tasks[j-1] = tasks[j-1], tasks[j]
-		}
-	}
+	slices.SortStableFunc(tasks, func(a, b domain.Task) int {
+		return Compare(a.Priority, b.Priority)
+	})
 }
 
 // Top returns the highest-priority task from a non-empty slice.

@@ -55,30 +55,42 @@ type jsonRPCError struct {
 
 // Server is the MCP stdio server.
 type Server struct {
-	app *application.App
-	log *slog.Logger
-	in  io.Reader
-	out io.Writer
+	app       *application.App
+	log       *slog.Logger
+	in        io.Reader
+	out       io.Writer
+	initResp  json.RawMessage // pre-marshalled initialize response
+	toolsResp json.RawMessage // pre-marshalled tools/list response
 }
 
 // New creates an MCP server reading from stdin and writing to stdout.
 func New(app *application.App, log *slog.Logger) *Server {
-	return &Server{app: app, log: log, in: os.Stdin, out: os.Stdout}
+	return NewWithIO(app, log, os.Stdin, os.Stdout)
 }
 
 // NewWithIO creates an MCP server with custom reader/writer, useful for testing.
 func NewWithIO(app *application.App, log *slog.Logger, in io.Reader, out io.Writer) *Server {
-	return &Server{app: app, log: log, in: in, out: out}
+	s := &Server{app: app, log: log, in: in, out: out}
+	s.initResp, _ = json.Marshal(map[string]any{
+		"protocolVersion": "2024-11-05",
+		"capabilities":    map[string]any{"tools": map[string]any{}},
+		"serverInfo":      map[string]any{"name": "quest-one", "version": "0.1.0"},
+	})
+	s.toolsResp, _ = json.Marshal(buildToolsList())
+	return s
 }
 
 // scannerBufSize is the maximum line size the MCP scanner will accept.
 // 1 MiB is sufficient for large tool responses (e.g. full task lists).
 const scannerBufSize = 1 << 20
 
+// scannerInitBufSize is the initial scanner buffer; grows on demand up to scannerBufSize.
+const scannerInitBufSize = 4096
+
 // Run starts the stdio JSON-RPC loop. Blocks until ctx is cancelled or EOF.
 func (s *Server) Run(ctx context.Context) error {
 	scanner := bufio.NewScanner(s.in)
-	scanner.Buffer(make([]byte, scannerBufSize), scannerBufSize)
+	scanner.Buffer(make([]byte, scannerInitBufSize), scannerBufSize)
 	enc := json.NewEncoder(s.out)
 
 	for scanner.Scan() {
@@ -146,75 +158,73 @@ func (s *Server) dispatch(ctx context.Context, method string, params json.RawMes
 }
 
 func (s *Server) handleInitialize() (any, *jsonRPCError) {
-	return map[string]any{
-		"protocolVersion": "2024-11-05",
-		"capabilities":    map[string]any{"tools": map[string]any{}},
-		"serverInfo": map[string]any{
-			"name":    "quest-one",
-			"version": "0.1.0",
-		},
-	}, nil
+	return json.RawMessage(s.initResp), nil
 }
 
 func (s *Server) handleToolsList() (any, *jsonRPCError) {
-	tools := []map[string]any{
-		{
-			"name":        toolNextTask,
-			"description": "Get the highest-priority active task",
-			"inputSchema": map[string]any{"type": "object", "properties": map[string]any{}},
-		},
-		{
-			"name":        toolAddTask,
-			"description": "Add a new task",
-			"inputSchema": map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"title":       map[string]string{"type": "string", "description": "Task title"},
-					"description": map[string]string{"type": "string", "description": "Optional description"},
-				},
-				"required": []string{"title"},
+	return json.RawMessage(s.toolsResp), nil
+}
+
+func buildToolsList() map[string]any {
+	return map[string]any{
+		"tools": []map[string]any{
+			{
+				"name":        toolNextTask,
+				"description": "Get the highest-priority active task",
+				"inputSchema": map[string]any{"type": "object", "properties": map[string]any{}},
 			},
-		},
-		{
-			"name":        toolListTasks,
-			"description": "List active tasks ordered by priority",
-			"inputSchema": map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"limit": map[string]string{"type": "integer", "description": "Max results (default 20)"},
+			{
+				"name":        toolAddTask,
+				"description": "Add a new task",
+				"inputSchema": map[string]any{
+					"type": "object",
+					"properties": map[string]any{
+						"title":       map[string]string{"type": "string", "description": "Task title"},
+						"description": map[string]string{"type": "string", "description": "Optional description"},
+					},
+					"required": []string{"title"},
 				},
 			},
-		},
-		{
-			"name":        toolCompleteTask,
-			"description": "Mark a task as completed",
-			"inputSchema": map[string]any{
-				"type":       "object",
-				"properties": map[string]any{"id": map[string]string{"type": "string"}},
-				"required":   []string{"id"},
-			},
-		},
-		{
-			"name":        toolCandidates,
-			"description": "Get the top N priority tasks",
-			"inputSchema": map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"n": map[string]string{"type": "integer", "description": "Number of candidates"},
+			{
+				"name":        toolListTasks,
+				"description": "List active tasks ordered by priority",
+				"inputSchema": map[string]any{
+					"type": "object",
+					"properties": map[string]any{
+						"limit": map[string]string{"type": "integer", "description": "Max results (default 20)"},
+					},
 				},
 			},
-		},
-		{
-			"name":        toolSearchTasks,
-			"description": "Full-text search over tasks",
-			"inputSchema": map[string]any{
-				"type":       "object",
-				"properties": map[string]any{"query": map[string]string{"type": "string"}},
-				"required":   []string{"query"},
+			{
+				"name":        toolCompleteTask,
+				"description": "Mark a task as completed",
+				"inputSchema": map[string]any{
+					"type":       "object",
+					"properties": map[string]any{"id": map[string]string{"type": "string"}},
+					"required":   []string{"id"},
+				},
+			},
+			{
+				"name":        toolCandidates,
+				"description": "Get the top N priority tasks",
+				"inputSchema": map[string]any{
+					"type": "object",
+					"properties": map[string]any{
+						"n": map[string]string{"type": "integer", "description": "Number of candidates"},
+					},
+				},
+			},
+			{
+				"name":        toolSearchTasks,
+				"description": "Full-text search over tasks",
+				"inputSchema": map[string]any{
+					"type":       "object",
+					"properties": map[string]any{"query": map[string]string{"type": "string"}},
+					"required":   []string{"query"},
+				},
 			},
 		},
 	}
-	return map[string]any{"tools": tools}, nil
 }
 
 func (s *Server) handleToolsCall(ctx context.Context, params json.RawMessage) (any, *jsonRPCError) {

@@ -43,7 +43,7 @@ func (a *Adapter) SourceType() domain.SourceType { return domain.SourceTypeSlack
 // Sync fetches incomplete Slack reminders as source items.
 // implements ports.SourceAdapter.
 func (a *Adapter) Sync(ctx context.Context, integration domain.Integration) ([]domain.SourceItem, error) {
-	account := fmt.Sprintf("slack.%s", integration.ID)
+	account := keychain.AccountKey(string(a.SourceType()), string(integration.ID))
 	token, err := a.secrets.Get(keychain.ServiceName, account)
 	if err != nil {
 		return nil, fmt.Errorf("slack adapter: credentials: %w", err)
@@ -81,7 +81,6 @@ func (a *Adapter) Sync(ctx context.Context, integration domain.Integration) ([]d
 			continue
 		}
 		item := domain.NewSourceItem(
-			"",
 			domain.SourceTypeSlack,
 			r.ID,
 			r.Text,

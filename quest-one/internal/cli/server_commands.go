@@ -2,8 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"log/slog"
-	"os"
 	"strconv"
 
 	"github.com/spf13/cobra"
@@ -29,8 +27,7 @@ func serveCmd(app *application.App) *cobra.Command {
 				}
 			}
 
-			log := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))
-			s := server.New(app, server.Config{Port: port, Log: log})
+			s := server.New(app, server.Config{Port: port, Log: app.Log})
 
 			fmt.Fprintf(cmd.OutOrStdout(), "Serving on http://localhost:%d\n", port)
 			return s.Start(cmd.Context())

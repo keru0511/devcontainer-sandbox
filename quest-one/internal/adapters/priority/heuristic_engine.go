@@ -28,8 +28,7 @@ func (e *HeuristicEngine) Recalculate(_ context.Context, tasks []domain.Task) ([
 
 		// Deadline urgency
 		if t.DueDate != nil {
-			days := int(t.DueDate.Sub(now).Hours() / 24)
-			t.Priority.DeadlineUrgency = domain.DeadlineUrgencyScore(days)
+			t.Priority.DeadlineUrgency = domain.DeadlineUrgencyScore(domain.DaysUntil(*t.DueDate))
 		}
 
 		// Waiting days

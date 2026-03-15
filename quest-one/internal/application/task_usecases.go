@@ -38,8 +38,7 @@ func (a *App) AddTask(ctx context.Context, in AddTaskInput) (domain.Task, error)
 	task.Priority.CreationOrder = string(id)
 
 	if task.DueDate != nil {
-		days := int(time.Until(*task.DueDate).Hours() / 24)
-		task.Priority.DeadlineUrgency = domain.DeadlineUrgencyScore(days)
+		task.Priority.DeadlineUrgency = domain.DeadlineUrgencyScore(domain.DaysUntil(*task.DueDate))
 	}
 
 	if err := a.Tasks.Save(ctx, task); err != nil {
@@ -88,7 +87,6 @@ func (a *App) ListTasks(ctx context.Context, in ListTasksInput) (ListTasksOutput
 	if err != nil {
 		return ListTasksOutput{}, fmt.Errorf("list_tasks: %w", err)
 	}
-	services.SortByPriority(tasks)
 	return ListTasksOutput{Tasks: tasks, Total: total}, nil
 }
 

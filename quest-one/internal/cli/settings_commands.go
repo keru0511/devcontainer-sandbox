@@ -3,6 +3,7 @@ package cli
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 
 	"github.com/spf13/cobra"
 
@@ -39,8 +40,8 @@ func settingsCmd(app *application.App) *cobra.Command {
 				if err != nil {
 					return err
 				}
-				var port int
-				if _, err := fmt.Sscan(args[0], &port); err != nil {
+				port, err := strconv.Atoi(args[0])
+				if err != nil {
 					return fmt.Errorf("%w: invalid port", domain.ErrInvalidInput)
 				}
 				s.ServerPort = port

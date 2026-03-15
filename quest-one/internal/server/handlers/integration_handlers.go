@@ -52,7 +52,7 @@ func (h *Handlers) APIEnableIntegration(w http.ResponseWriter, r *http.Request) 
 	id := domain.IntegrationID(chi.URLParam(r, "id"))
 	integration, err := h.app.EnableIntegration(r.Context(), id)
 	if err != nil {
-		if errors.Is(err, domain.ErrNotFound) {
+		if domain.IsNotFound(err) {
 			respondError(w, http.StatusNotFound, "integration not found")
 			return
 		}
@@ -66,7 +66,7 @@ func (h *Handlers) APIDisableIntegration(w http.ResponseWriter, r *http.Request)
 	id := domain.IntegrationID(chi.URLParam(r, "id"))
 	integration, err := h.app.DisableIntegration(r.Context(), id)
 	if err != nil {
-		if errors.Is(err, domain.ErrNotFound) {
+		if domain.IsNotFound(err) {
 			respondError(w, http.StatusNotFound, "integration not found")
 			return
 		}
@@ -79,7 +79,7 @@ func (h *Handlers) APIDisableIntegration(w http.ResponseWriter, r *http.Request)
 func (h *Handlers) APIDeleteIntegration(w http.ResponseWriter, r *http.Request) {
 	id := domain.IntegrationID(chi.URLParam(r, "id"))
 	if err := h.app.DeleteIntegration(r.Context(), id); err != nil {
-		if errors.Is(err, domain.ErrNotFound) {
+		if domain.IsNotFound(err) {
 			respondError(w, http.StatusNotFound, "integration not found")
 			return
 		}

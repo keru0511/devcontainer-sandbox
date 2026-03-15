@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"sync"
 
 	"github.com/oklog/ulid/v2"
 
@@ -11,8 +12,7 @@ import (
 	"github.com/quest-one/quest-one/internal/ports"
 )
 
-// SyncAll runs all enabled integrations' source adapters in sequence.
-// Each adapter is given its own context-derived sub-span for observability.
+// SyncAll runs all enabled integrations' source adapters concurrently.
 // If adapters is nil, the app's registered Adapters are used.
 func (a *App) SyncAll(ctx context.Context, adapters []ports.SourceAdapter) ([]ports.SyncResult, error) {
 	if adapters == nil {
@@ -28,20 +28,35 @@ func (a *App) SyncAll(ctx context.Context, adapters []ports.SourceAdapter) ([]po
 		adapterMap[ad.SourceType()] = ad
 	}
 
-	var results []ports.SyncResult
-	for _, integration := range integrations {
+	results := make([]ports.SyncResult, len(integrations))
+	var wg sync.WaitGroup
+
+	for i, integration := range integrations {
 		ad, ok := adapterMap[domain.SourceType(integration.Provider)]
 		if !ok {
 			a.Log.Warn("no adapter for integration", slog.String("provider", string(integration.Provider)))
 			continue
 		}
-		r, err := a.syncIntegration(ctx, integration, ad)
-		if err != nil {
-			a.Log.Error("sync failed", slog.String("integration", string(integration.ID)), slog.Any("err", err))
-		}
-		results = append(results, r)
+		wg.Add(1)
+		go func(idx int, intg domain.Integration, adapter ports.SourceAdapter) {
+			defer wg.Done()
+			r, err := a.syncIntegration(ctx, intg, adapter)
+			if err != nil {
+				a.Log.Error("sync failed", slog.String("integration", string(intg.ID)), slog.Any("err", err))
+			}
+			results[idx] = r // safe: each goroutine writes to a distinct index
+		}(i, integration, ad)
 	}
-	return results, nil
+	wg.Wait()
+
+	// Filter out zero-value results for skipped integrations.
+	var out []ports.SyncResult
+	for _, r := range results {
+		if r.SourceType != "" {
+			out = append(out, r)
+		}
+	}
+	return out, nil
 }
 
 func (a *App) syncIntegration(
@@ -57,15 +72,24 @@ func (a *App) syncIntegration(
 		return result, err
 	}
 
-	for _, item := range items {
-		existing, findErr := a.SourceItems.FindByExternalID(ctx, item.SourceType, item.ExternalID)
-		isNew := domain.IsNotFound(findErr)
+	// Batch-load existing source items once to avoid N+1 queries.
+	existing, err := a.SourceItems.FindBySourceType(ctx, adapter.SourceType())
+	if err != nil {
+		return result, fmt.Errorf("syncIntegration: load_existing: %w", err)
+	}
+	existingByExternalID := make(map[string]domain.SourceItem, len(existing))
+	for _, e := range existing {
+		existingByExternalID[e.ExternalID] = e
+	}
 
-		if !isNew {
+	for _, item := range items {
+		isNew := true
+		if prev, found := existingByExternalID[item.ExternalID]; found {
 			// Preserve the original ULID so we do an update, not a new insert.
-			item.ID = existing.ID
-			item.CreatedAt = existing.CreatedAt
+			item.ID = prev.ID
+			item.CreatedAt = prev.CreatedAt
 			result.Updated++
+			isNew = false
 		} else {
 			item.ID = domain.SourceItemID(ulid.Make().String())
 			result.Created++

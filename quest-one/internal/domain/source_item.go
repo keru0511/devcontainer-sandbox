@@ -38,11 +38,10 @@ type SourceItem struct {
 	RawPayload   []byte // JSON snapshot from last sync
 }
 
-// NewSourceItem constructs a new SourceItem.
-func NewSourceItem(id SourceItemID, sourceType SourceType, externalID, title string) SourceItem {
+// NewSourceItem constructs a new SourceItem. The ID is left empty and assigned by the sync use case.
+func NewSourceItem(sourceType SourceType, externalID, title string) SourceItem {
 	now := time.Now().UTC()
 	return SourceItem{
-		ID:           id,
 		SourceType:   sourceType,
 		ExternalID:   externalID,
 		Title:        title,
@@ -50,9 +49,4 @@ func NewSourceItem(id SourceItemID, sourceType SourceType, externalID, title str
 		CreatedAt:    now,
 		UpdatedAt:    now,
 	}
-}
-
-// SourceKey returns a unique string combining source type and external ID.
-func (s SourceItem) SourceKey() string {
-	return string(s.SourceType) + ":" + s.ExternalID
 }

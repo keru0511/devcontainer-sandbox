@@ -36,7 +36,7 @@ func (h *Handlers) TaskDetailPage(w http.ResponseWriter, r *http.Request) {
 	id := domain.TaskID(chi.URLParam(r, "id"))
 	task, err := h.app.Tasks.FindByID(r.Context(), id)
 	if err != nil {
-		if errors.Is(err, domain.ErrNotFound) {
+		if domain.IsNotFound(err) {
 			http.NotFound(w, r)
 			return
 		}
@@ -175,11 +175,8 @@ func (h *Handlers) SearchTasks(w http.ResponseWriter, r *http.Request) {
 // ---- JSON API handlers ----
 
 func (h *Handlers) APIListTasks(w http.ResponseWriter, r *http.Request) {
-	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
-	if limit == 0 {
-		limit = 50
-	}
+	limit := queryInt(r, "limit", 50)
+	offset := queryInt(r, "offset", 0)
 
 	out, err := h.app.ListTasks(r.Context(), application.ListTasksInput{
 		Limit:  limit,
@@ -244,10 +241,7 @@ func (h *Handlers) APINextTask(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) APICandidates(w http.ResponseWriter, r *http.Request) {
-	n, _ := strconv.Atoi(r.URL.Query().Get("n"))
-	if n == 0 {
-		n = 5
-	}
+	n := queryInt(r, "n", 5)
 	tasks, err := h.app.Candidates(r.Context(), n)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err.Error())
@@ -260,7 +254,7 @@ func (h *Handlers) APIGetTask(w http.ResponseWriter, r *http.Request) {
 	id := domain.TaskID(chi.URLParam(r, "id"))
 	task, err := h.app.Tasks.FindByID(r.Context(), id)
 	if err != nil {
-		if errors.Is(err, domain.ErrNotFound) {
+		if domain.IsNotFound(err) {
 			respondError(w, http.StatusNotFound, "task not found")
 			return
 		}
@@ -319,7 +313,7 @@ func (h *Handlers) APIAddMemo(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handlers) APISearchTasks(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query().Get("q")
-	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	limit := queryInt(r, "limit", 0)
 	results, err := h.app.SearchTasks(r.Context(), q, limit)
 	if err != nil {
 		if errors.Is(err, domain.ErrInvalidInput) {
@@ -332,26 +326,37 @@ func (h *Handlers) APISearchTasks(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, results)
 }
 
+// ---- query helpers ----
+
+// queryInt parses an integer query parameter, returning def if absent or invalid.
+func queryInt(r *http.Request, key string, def int) int {
+	v, err := strconv.Atoi(r.URL.Query().Get(key))
+	if err != nil {
+		return def
+	}
+	return v
+}
+
 // ---- error helpers ----
 
-func handleTaskError(w http.ResponseWriter, err error) {
+// taskErrStatus maps a task use-case error to an HTTP status code and message.
+func taskErrStatus(err error) (int, string) {
 	switch {
-	case errors.Is(err, domain.ErrNotFound):
-		http.NotFound(w, nil)
+	case domain.IsNotFound(err):
+		return http.StatusNotFound, "task not found"
 	case errors.Is(err, domain.ErrConflict):
-		http.Error(w, err.Error(), http.StatusConflict)
+		return http.StatusConflict, err.Error()
 	default:
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		return http.StatusInternalServerError, "internal error"
 	}
 }
 
+func handleTaskError(w http.ResponseWriter, err error) {
+	code, msg := taskErrStatus(err)
+	http.Error(w, msg, code)
+}
+
 func handleTaskErrorJSON(w http.ResponseWriter, err error) {
-	switch {
-	case errors.Is(err, domain.ErrNotFound):
-		respondError(w, http.StatusNotFound, "task not found")
-	case errors.Is(err, domain.ErrConflict):
-		respondError(w, http.StatusConflict, err.Error())
-	default:
-		respondError(w, http.StatusInternalServerError, err.Error())
-	}
+	code, msg := taskErrStatus(err)
+	respondError(w, code, msg)
 }

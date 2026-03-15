@@ -23,11 +23,7 @@ var _ ports.SourceItemRepository = (*SourceItemRepository)(nil)
 func (r *SourceItemRepository) Save(ctx context.Context, item domain.SourceItem) error {
 	labelsJSON, _ := json.Marshal(item.Labels)
 
-	var dueDate *string
-	if item.DueDate != nil {
-		s := item.DueDate.UTC().Format(time.RFC3339)
-		dueDate = &s
-	}
+	dueDate := nullableTimeToStr(item.DueDate)
 
 	_, err := r.db.ExecContext(ctx, `
 		INSERT INTO source_items
@@ -132,13 +128,10 @@ func scanSourceItem(s scanner) (domain.SourceItem, error) {
 
 	item.SourceType = domain.SourceType(sourceType)
 	_ = json.Unmarshal([]byte(labelsJSON), &item.Labels)
-	if dueDate != nil {
-		d, _ := time.Parse(time.RFC3339, *dueDate)
-		item.DueDate = &d
-	}
-	item.LastSyncedAt, _ = time.Parse(time.RFC3339, lastSynced)
-	item.CreatedAt, _ = time.Parse(time.RFC3339, createdAt)
-	item.UpdatedAt, _ = time.Parse(time.RFC3339, updatedAt)
+	item.DueDate = parseNullableTime(dueDate)
+	item.LastSyncedAt = parseTime(lastSynced)
+	item.CreatedAt = parseTime(createdAt)
+	item.UpdatedAt = parseTime(updatedAt)
 
 	return item, nil
 }

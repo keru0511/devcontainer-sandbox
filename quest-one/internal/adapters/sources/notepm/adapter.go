@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"time"
 
@@ -41,14 +42,21 @@ func (a *Adapter) SourceType() domain.SourceType { return domain.SourceTypeNoteP
 // Sync fetches recent NotePM notes as source items.
 // implements ports.SourceAdapter.
 func (a *Adapter) Sync(ctx context.Context, integration domain.Integration) ([]domain.SourceItem, error) {
-	account := fmt.Sprintf("notepm.%s", integration.ID)
+	account := keychain.AccountKey(string(a.SourceType()), string(integration.ID))
 	token, err := a.secrets.Get(keychain.ServiceName, account)
 	if err != nil {
 		return nil, fmt.Errorf("notepm adapter: credentials: %w", err)
 	}
 
+	limit := 100
+	if integration.SyncFilters.MaxItems > 0 {
+		limit = integration.SyncFilters.MaxItems
+	}
+
 	// NotePM API: GET https://<team>.notepm.jp/api/v1/notes
-	reqURL := fmt.Sprintf("%s/api/v1/notes", integration.BaseURL)
+	q := url.Values{}
+	q.Set("per_page", strconv.Itoa(limit))
+	reqURL := fmt.Sprintf("%s/api/v1/notes?%s", integration.BaseURL, q.Encode())
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("notepm adapter: build request: %w", err)
@@ -71,19 +79,10 @@ func (a *Adapter) Sync(ctx context.Context, integration domain.Integration) ([]d
 		return nil, fmt.Errorf("notepm adapter: decode: %w", err)
 	}
 
-	limit := 100
-	if integration.SyncFilters.MaxItems > 0 {
-		limit = integration.SyncFilters.MaxItems
-	}
-
 	now := time.Now().UTC()
 	items := make([]domain.SourceItem, 0, len(body.Notes))
-	for i, note := range body.Notes {
-		if i >= limit {
-			break
-		}
+	for _, note := range body.Notes {
 		item := domain.NewSourceItem(
-			"",
 			domain.SourceTypeNotePM,
 			strconv.Itoa(note.ID),
 			note.Title,

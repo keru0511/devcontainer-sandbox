@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"time"
 
 	"github.com/quest-one/quest-one/internal/domain"
 	"github.com/quest-one/quest-one/internal/ports"
@@ -81,16 +80,10 @@ func (s *SearchIndex) Search(ctx context.Context, query string, limit int) ([]po
 			pid := domain.TaskID(*parentID)
 			t.ParentID = &pid
 		}
-		if dueDate != nil {
-			d, _ := time.Parse(time.RFC3339, *dueDate)
-			t.DueDate = &d
-		}
-		if completedAt != nil {
-			c, _ := time.Parse(time.RFC3339, *completedAt)
-			t.CompletedAt = &c
-		}
-		t.CreatedAt, _ = time.Parse(time.RFC3339, createdAt)
-		t.UpdatedAt, _ = time.Parse(time.RFC3339, updatedAt)
+		t.DueDate = parseNullableTime(dueDate)
+		t.CompletedAt = parseNullableTime(completedAt)
+		t.CreatedAt = parseTime(createdAt)
+		t.UpdatedAt = parseTime(updatedAt)
 		_ = json.Unmarshal([]byte(tagsJSON), &t.Tags)
 		_ = json.Unmarshal([]byte(priorityJSON), &t.Priority)
 
